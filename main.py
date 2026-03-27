@@ -123,17 +123,20 @@ def executarExpressao(tokens, memoria, resultados):
       pilha.append(resolver(n1, n2, token[1:]))
     elif token[0] == "m":
       if len(pilha) < 1 or tokens[i+1][0] == "o":
+        # Pegar valor da memoria
         mem = memoria.get(token[1:])
         if mem == None:
           mem = 0.0
         pilha.append(mem)
       else:
+        # Armazenar valor na memoria
         memoria[token[1:]] = pilha[-1]
     elif token[0] == "r":
       if len(pilha) < 1:
         print("Erro: Falta tokens para RES")
         return None
       else:
+        # Pegar valor de resultados
         res = int(pilha.pop())
         if res < 1 or res >= len(resultados):
           print("Erro: Resultado fora dos limites")
@@ -143,6 +146,7 @@ def executarExpressao(tokens, memoria, resultados):
     else:
       print("Erro: Token invalido")
       return None
+  # Retorna o resultado
   if len(pilha) == 1:
     return pilha.pop()   
   else:
