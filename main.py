@@ -162,6 +162,7 @@ def executarExpressoes(tokens_list):
 def gerarAssembly(tokens_list, codigoAssembly):
   len_pilha = 0
   len_numeros = 0
+  memoria = set()
 
   codigo = ".global _start\n _start:\n"
   data = ".data\n"
@@ -210,7 +211,9 @@ def gerarAssembly(tokens_list, codigoAssembly):
           codigo += "    vpush.f64 {d0}\n"
           len_pilha += 1
         else:
-          data += f"    {mem}: .double 0.0\n"
+          if mem not in memoria:
+            memoria.add(mem)
+            data += f"    {mem}: .double 0.0\n"
           codigo += "    vpop.f64 {d0}\n"
           codigo += f"    ldr r0, ={mem}\n"
           codigo += "    vstr.f64 d0, [r0]\n"
@@ -234,7 +237,7 @@ def gerarAssembly(tokens_list, codigoAssembly):
         return None
     if len_pilha == 1:
       resultados += f"    r_{i}: .double 0.0\n"
-      codigo += "    vvedalsversepop.f64 {d0}\n"
+      codigo += "    vpop.f64 {d0}\n"
       codigo += f"    ldr r0, =r_{i}\n"
       codigo += "    vstr.f64 d0, [r0]\n"
       len_pilha -= 1
@@ -303,7 +306,8 @@ def exibirResultados(resultados):
     print("Erro ao executar expressoes")
   else: 
     for i, resultado in enumerate(resultados):
-      print(f"Resultado {i+1}: {resultado}")
+      resultado = float(resultado)
+      print(f"Resultado {i+1}: {resultado:.2f}")
     
 if __name__ == '__main__':
   nomeArquivo = sys.argv[1]
