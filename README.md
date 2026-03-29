@@ -17,12 +17,12 @@ Comando de Execução: python main.py teste1.txt
 
 Para validar os resultados gerados:
 
-    Execute o main.py para gerar o arquivo assembly.s.
+Execute o main.py para gerar o arquivo assembly.s.
 
-    Acesse o CPULATOR.
+Acesse o CPULATOR.
 
-    Selecione o sistema ARMv7 DEC1-SOC(v16.1).
+Selecione o sistema ARMv7 DEC1-SOC(v16.1).
 
-    Cole o conteúdo de assembly.s no editor e clique em Compile and Load.
+Cole o conteúdo de assembly.s no editor e clique em Compile and Load.
 
-    Monitore os registradores de ponto flutuante (d0, d1, etc.) e a memória para conferir os resultados.
+Monitore os registradores de ponto flutuante (d0, d1, etc.) e a memória para conferir os resultados.
