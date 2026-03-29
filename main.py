@@ -95,11 +95,11 @@ def resolver(n1, n2, operador):
   elif operador == "/":
     return float(n1) / float(n2)
   elif operador == "%":
-    return int(n1) % int(n2)
+    return float(n1) % float(n2)
   elif operador == "^":
-    return float(n1) ** float(n2)
+    return float(n1) ** int(float(n2))
   else:
-    return int(n1) // int(n2)
+    return float(n1) // float(n2)
 
 # Executar uma linha de tokens
 def executarExpressao(tokens, memoria, resultados):
@@ -112,7 +112,7 @@ def executarExpressao(tokens, memoria, resultados):
       pilha.append(token[1:])
     elif token[0] == "o":
       if len(pilha) < 2:
-        print("Erro: Falta tokens para operador")
+        print(f"Erro: Falta tokens para operador. Token: {token}")
         return None
       n2 = pilha.pop()
       n1 = pilha.pop()
@@ -156,16 +156,18 @@ def executarExpressoes(tokens_list):
   for tokens in tokens_list:
     resultados.append(executarExpressao(tokens, memoria, resultados))
     if resultados[-1] == None:
+      print(f"Erro: {tokens}")
       return None
   return resultados
 
 def gerarAssembly(tokens_list, codigoAssembly):
   len_pilha = 0
   len_numeros = 0
+  len_potencias = 0
   memoria = set()
 
   codigo = ".global _start\n _start:\n"
-  data = ".data\n"
+  data = ".data\n    const_um: .double 1.0\n"
   resultados = ""
   for i, tokens in enumerate(tokens_list):
     for j, token in enumerate(tokens):
@@ -195,10 +197,34 @@ def gerarAssembly(tokens_list, codigoAssembly):
           codigo += "    vmul.f64 d2, d0, d1\n"
         elif operador == '/':
           codigo += "    vdiv.f64 d2, d0, d1\n"
+        elif operador == '%':
+          codigo += "    vdiv.f64 d2, d0, d1\n"
+          codigo += "    vcvt.s32.f64 s4, d2\n"
+          codigo += "    vcvt.f64.s32 d2, s4\n"
+          codigo += "    vmul.f64 d2, d2, d1\n"
+          codigo += "    vsub.f64 d2, d0, d2\n"
+        elif operador == '^':
+          codigo += "    vcvt.s32.f64 s2, d1\n"
+          codigo += "    vmov r2, s2\n"
+          codigo += "    ldr r0, =const_um\n"
+          codigo += "    vldr.f64 d2, [r0]\n"
+          codigo += "    cmp r2, #0\n"
+          codigo += f"    beq .fim_pot{len_potencias}\n"
+          codigo += f".pot{len_potencias}:\n"
+          codigo += "    cmp r2, #0\n"
+          codigo += f"    ble .fim_pot{len_potencias}\n"
+          codigo += "    vmul.f64 d2, d2, d0\n"
+          codigo += "    sub r2, r2, #1\n"
+          codigo += f"    b .pot{len_potencias}\n"
+          codigo += f".fim_pot{len_potencias}:\n"
+          len_potencias += 1
+        elif operador == '//':
+          codigo += "    vdiv.f64 d2, d0, d1\n"
+          codigo += "    vcvt.s32.f64 s4, d2\n"
+          codigo += "    vcvt.f64.s32 d2, s4\n"
         else:
           print("Erro: Operador invalido")
           return None
-          # todo: % // ^
         
         codigo += "    vpush.f64 {d2}\n"
         len_pilha -= 1
