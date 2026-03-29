@@ -3,17 +3,18 @@
 
 import sys
 
+# Analisa uma linha de expressão para gerar uma lista de tokens.
 def parseExpressao (linha, _tokens_):
   index = 0
   lenlinha = len(linha)
   while index < lenlinha:
-    # Se retornar index -1 algum erro foi detectado
+    # Se retornar index -1 um erro foi detectado
     if index == -1:
       estadoErro(linha)
       return None
     else:
       letra = linha[index]
-
+    # Classifica e processa o tipo de token
     if letra == ' ':
       index += 1
     elif letra in '()':
@@ -25,17 +26,18 @@ def parseExpressao (linha, _tokens_):
     elif letra in '+-*/%^':
       token, index = estadoOperador(linha, index)
       _tokens_.append(token)
-    elif letra in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+    elif letra in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ': # Variáveis ou 'RES'
       token, index = estadoEspecial(linha, index)
       _tokens_.append(token)
     elif letra == '\n':
       break
     else:
       estadoErro(linha)
-      return None
+      return None # Caractere inválido
 
   return _tokens_
 
+# Extrai um número (inteiro ou real) da expressão.
 def estadoNumero(linha, index):
   numero = linha[index]
   index += 1
@@ -58,12 +60,14 @@ def estadoNumero(linha, index):
 
   return "n" + numero, index
 
+# Extrai um operador da expressão.
 def estadoOperador(linha, index):
   operador = linha[index]
-  if operador == '/' and linha[index + 1] == '/':
+  if operador == '/' and linha[index + 1] == '/': # Divisão inteira
     return 'o//', index + 2
   return "o" + operador, index+1
 
+# Extrai um parêntese da expressão.
 def estadoParenteses(linha, index):
   return linha[index], index+1
 
@@ -72,7 +76,7 @@ def estadoEspecial(linha, index):
   especial = linha[index]
   index += 1
 
-  if especial == 'R' and linha[index] == 'E' and linha[index + 1] == 'S':
+  if especial == 'R' and linha[index] == 'E' and linha[index + 1] == 'S': # Token 'RES'
     return 'r', index + 2
   while index < len(linha):
     letra = linha[index]
@@ -82,9 +86,11 @@ def estadoEspecial(linha, index):
     else:
       return "m" + especial, index
 
+# Imprime mensagem de erro.
 def estadoErro(linha):
   print(f'Erro! expressao: {linha}')
 
+# Resolve uma operação
 def resolver(n1, n2, operador):
   if operador == "+":
     return float(n1) + float(n2)
@@ -108,16 +114,16 @@ def executarExpressao(tokens, memoria, resultados):
   for i, token in enumerate(tokens):
     if token in "()":
       continue
-    elif token[0] == "n":
+    elif token[0] == "n": # Empilha número
       pilha.append(token[1:])
-    elif token[0] == "o":
+    elif token[0] == "o": # Operador: desempilha 2, calcula, empilha resultado
       if len(pilha) < 2:
         print(f"Erro: Falta tokens para operador. Token: {token}")
         return None
       n2 = pilha.pop()
       n1 = pilha.pop()
       pilha.append(resolver(n1, n2, token[1:]))
-    elif token[0] == "m":
+    elif token[0] == "m": # Variável (MEM): leitura ou escrita
       if len(pilha) < 1 or tokens[i+1][0] == "o":
         # Pegar valor da memoria
         mem = memoria.get(token[1:])
@@ -127,7 +133,7 @@ def executarExpressao(tokens, memoria, resultados):
       else:
         # Armazenar valor na memoria
         memoria[token[1:]] = pilha[-1]
-    elif token[0] == "r":
+    elif token[0] == "r": # 'RES': referência a resultado anterior
       if len(pilha) < 1:
         print("Erro: Falta tokens para RES")
         return None
@@ -149,7 +155,7 @@ def executarExpressao(tokens, memoria, resultados):
     print(f"Erro: Expressao invalida, tokens restantes: {len(pilha)}")
     return None
 
-
+# Executa uma lista de expressões, gerenciando memória e resultados.
 def executarExpressoes(tokens_list):
   memoria = {}
   resultados = []
@@ -160,20 +166,22 @@ def executarExpressoes(tokens_list):
       return None
   return resultados
 
+# Gera código Assembly ARM para uma lista de expressões.
 def gerarAssembly(tokens_list, codigoAssembly):
   len_pilha = 0
   len_numeros = 0
   len_potencias = 0
   memoria = set()
 
-  codigo = ".global _start\n _start:\n"
-  data = ".data\n    const_um: .double 1.0\n"
-  resultados = ""
+  codigo = ".global _start\n _start:\n" # Início do código
+  data = ".data\n    const_um: .double 1.0\n" # Seção de dados
+  resultados = "" # Seção de resultados em .data
+
   for i, tokens in enumerate(tokens_list):
     for j, token in enumerate(tokens):
       if token in "()":
         continue
-      elif token[0] == "n":
+      elif token[0] == "n":: # Número: declara e empilha
         data += f"    n{len_numeros}: .double {token[1:]}\n"
         codigo += f"    ldr r0, =n{len_numeros}\n"
         codigo += f"    vldr.f64 d0, [r0]\n"
@@ -181,7 +189,7 @@ def gerarAssembly(tokens_list, codigoAssembly):
 
         len_numeros += 1
         len_pilha += 1
-      elif token[0] == "o":
+      elif token[0] == "o": # Operador: desempilha 2, opera, empilha 1
         if len_pilha < 2:
           print("Erro: Falta tokens para operador")
           return None
@@ -203,7 +211,7 @@ def gerarAssembly(tokens_list, codigoAssembly):
           codigo += "    vcvt.f64.s32 d2, s4\n"
           codigo += "    vmul.f64 d2, d2, d1\n"
           codigo += "    vsub.f64 d2, d0, d2\n"
-        elif operador == '^':
+        elif operador == '^': # Potência com loop
           codigo += "    vcvt.s32.f64 s2, d1\n"
           codigo += "    vmov r2, s2\n"
           codigo += "    ldr r0, =const_um\n"
@@ -228,7 +236,7 @@ def gerarAssembly(tokens_list, codigoAssembly):
         
         codigo += "    vpush.f64 {d2}\n"
         len_pilha -= 1
-      elif token[0] == "m":
+      elif token[0] == "m": # Variável: leitura ou escrita em memória
         mem = token[1:]
 
         if len_pilha < 1 or tokens[j+1][0] == "o":
@@ -244,7 +252,7 @@ def gerarAssembly(tokens_list, codigoAssembly):
           codigo += f"    ldr r0, ={mem}\n"
           codigo += "    vstr.f64 d0, [r0]\n"
           codigo += "    vpush.f64 {d0}\n"
-      elif token[0] == "r":
+      elif token[0] == "r": # 'RES': carrega resultado anterior
         if len_pilha < 1:
           print("Erro: Falta tokens para RES")
           return None
@@ -261,6 +269,7 @@ def gerarAssembly(tokens_list, codigoAssembly):
       else:
         print("Erro: Token invalido")
         return None
+    # Armazena o resultado da expressão atual
     if len_pilha == 1:
       resultados += f"    r_{i}: .double 0.0\n"
       codigo += "    vpop.f64 {d0}\n"
@@ -271,9 +280,10 @@ def gerarAssembly(tokens_list, codigoAssembly):
       print(f"Erro: Expressao invalida, tokens restantes: {len_pilha}")
       return None  
   
-  codigoAssembly = codigo + data + resultados
+  codigoAssembly = codigo + data + resultados # Combina seções
   return codigoAssembly
-      
+     
+# Função de teste para o Analisador Léxico (AFD) e Execução de Expressões.
 def testarAFD():
   expressoes =  ["((2 Y 3 +) (2 1 +)+)",
                  "(((2 3 +) Y +) (2 1 +)+)",
@@ -291,6 +301,7 @@ def testarAFD():
   else:
     print("Expressoes executadas corretamente com sucesso")
 
+# Função de teste para a geração de código Assembly.
 def testarAssembly():
   expressoes =  ["(3.14 2.0 +)",
                 "((1.5 2.0 *) (3.0 4.0 *) /)",
@@ -307,15 +318,18 @@ def testarAssembly():
   else:
     print("Codigo assembly gerado sem erros com sucesso")
 
+# Salva tokens em um arquivo.
 def saveTokens(tokens_list, nomeArquivo):
   with open(nomeArquivo, 'w') as arquivo:
     for tokens in tokens_list:
       arquivo.write(';'.join(tokens) + '\n')
 
+# Salva o código assembly em um arquivo.
 def saveAssembly(codigoAssembly, nomeArquivo):
   with open(nomeArquivo, 'w') as arquivo:
     arquivo.write(codigoAssembly)
 
+# Lê linhas de um arquivo.
 def lerArquivo(nomeArquivo, linhas):
   try:
     with open(nomeArquivo, 'r') as arquivo:
@@ -326,6 +340,7 @@ def lerArquivo(nomeArquivo, linhas):
   except Exception as e:
     print(f"Erro de leitura: {e}")
 
+# Exibe os resultados formatados.
 def exibirResultados(resultados):
   print("Resultados:")
   if resultados == None:
@@ -335,6 +350,7 @@ def exibirResultados(resultados):
       resultado = float(resultado)
       print(f"Resultado {i+1}: {resultado:.2f}")
     
+# Bloco de execução principal.
 if __name__ == '__main__':
   nomeArquivo = sys.argv[1]
 
