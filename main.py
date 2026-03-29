@@ -1,6 +1,8 @@
 # Nome: Luca Takemura Piccoli Usuario: MrJubiscreldo
 # Grupo: RA1 15 RA1
 
+import sys
+
 def parseExpressao (linha, _tokens_):
   index = 0
   lenlinha = len(linha)
@@ -82,12 +84,6 @@ def estadoEspecial(linha, index):
 
 def estadoErro(linha):
   print(f'Erro! expressao: {linha}')
-
-#Testar analisador lexico
-# def testarAL(tokens_list):
-#   for tokens in tokens_list:
-#     for token in tokens:
-      # todo: checar se token eh valido
 
 def resolver(n1, n2, operador):
   if operador == "+":
@@ -236,10 +232,9 @@ def gerarAssembly(tokens_list, codigoAssembly):
       else:
         print("Erro: Token invalido")
         return None
-    # Retorna o resultado
     if len_pilha == 1:
       resultados += f"    r_{i}: .double 0.0\n"
-      codigo += "    vpop.f64 {d0}\n"
+      codigo += "    vvedalsversepop.f64 {d0}\n"
       codigo += f"    ldr r0, =r_{i}\n"
       codigo += "    vstr.f64 d0, [r0]\n"
       len_pilha -= 1
@@ -249,13 +244,13 @@ def gerarAssembly(tokens_list, codigoAssembly):
   
   codigoAssembly = codigo + data + resultados
   return codigoAssembly
-
+      
 def testarAFD():
   expressoes =  ["((2 Y 3 +) (2 1 +)+)",
                  "(((2 3 +) Y +) (2 1 +)+)",
                  "(Y (2 1 +)+)",
                  "(3.14 2.0 +)",
-                 "3 RES",]
+                 "(3 RES)",]
   tokens_list = []
   for linha in expressoes:
     tokens_list.append(parseExpressao(linha, []))
@@ -283,13 +278,50 @@ def testarAssembly():
   else:
     print("Codigo assembly gerado sem erros com sucesso")
 
+def saveTokens(tokens_list, nomeArquivo):
+  with open(nomeArquivo, 'w') as arquivo:
+    for tokens in tokens_list:
+      arquivo.write(';'.join(tokens) + '\n')
 
+def saveAssembly(codigoAssembly, nomeArquivo):
+  with open(nomeArquivo, 'w') as arquivo:
+    arquivo.write(codigoAssembly)
 
-# expressoestxt = 'teste1.txt'
+def lerArquivo(nomeArquivo, linhas):
+  try:
+    with open(nomeArquivo, 'r') as arquivo:
+      for linha in arquivo:
+        linhas.append(linha)
+  except FileNotFoundError:
+    print(f"Erro: Arquivo '{nomeArquivo}' não encontrado.")
+  except Exception as e:
+    print(f"Erro de leitura: {e}")
 
-# with open(expressoestxt, 'r') as expressoes:
-#   tokens_list = []
-#   for linha in expressoes:
-#     tokens_list.append(parseExpressao(linha, []))
+def exibirResultados(resultados):
+  print("Resultados:")
+  if resultados == None:
+    print("Erro ao executar expressoes")
+  else: 
+    for i, resultado in enumerate(resultados):
+      print(f"Resultado {i+1}: {resultado}")
+    
+if __name__ == '__main__':
+  nomeArquivo = sys.argv[1]
 
-#   print(tokens_list)
+  arquivoTokens = "tokens.txt"
+  arquivoAssembly = "assembly.s"
+
+  tokens_list = []
+  linhas = []
+
+  lerArquivo(nomeArquivo, linhas)
+
+  for linha in linhas:
+    tokens_list.append(parseExpressao(linha, []))
+
+  saveTokens(tokens_list, arquivoTokens)
+  resultados = executarExpressoes(tokens_list)
+  exibirResultados(resultados)
+
+  codigoAssembly = gerarAssembly(tokens_list, "")
+  saveAssembly(codigoAssembly, arquivoAssembly)
