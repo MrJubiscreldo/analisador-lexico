@@ -181,7 +181,7 @@ def gerarAssembly(tokens_list, codigoAssembly):
     for j, token in enumerate(tokens):
       if token in "()":
         continue
-      elif token[0] == "n":: # Número: declara e empilha
+      elif token[0] == "n": # Número: declara e empilha
         data += f"    n{len_numeros}: .double {token[1:]}\n"
         codigo += f"    ldr r0, =n{len_numeros}\n"
         codigo += f"    vldr.f64 d0, [r0]\n"
